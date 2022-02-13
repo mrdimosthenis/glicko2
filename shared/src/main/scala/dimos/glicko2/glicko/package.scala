@@ -6,29 +6,30 @@ package object glicko:
 
   private val scale = 173.7178
 
-  private def mi(init_r: Double)(r: Double) = (r - init_r) / scale
+  def mi(init_r: Double)(r: Double): Double = (r - init_r) / scale
 
-  private def pfi(rd: Double) = rd / scale
+  def pfi(rd: Double): Double = rd / scale
 
-  private def r_sharp(init_r: Double)(mi_sharp: Double) = scale * mi_sharp + init_r
+  def r_sharp(init_r: Double)(mi_sharp: Double): Double = scale * mi_sharp + init_r
 
-  private def rd_sharp(pfi_sharp: Double) = scale * pfi_sharp
+  def rd_sharp(pfi_sharp: Double): Double = scale * pfi_sharp
 
-  private def gi(phi_i: Double) =
-    3.0 * phi_i * phi_i
-      .pipe(_ * Math.PI * Math.PI)
+  def gi(phi_i: Double): Double =
+    (3.0 * phi_i * phi_i)
+      .pipe(_ / (Math.PI * Math.PI))
       .pipe(_ + 1.0)
       .pipe(Math.sqrt)
       .pipe(1.0 / _)
 
-  private def epsilon(mi_i: Double, mi_j: Double, phi_j: Double) =
-    0.0 - gi(phi_j)
+  def epsilon(mi_i: Double, mi_j: Double, phi_j: Double): Double =
+    (0.0 - gi(phi_j))
       .pipe(_ * (mi_i - mi_j))
       .pipe(Math.exp)
       .pipe(_ + 1.0)
       .pipe(1.0 / _)
 
-  private def upsilon_with_delta(mi_i: Double, mi_phi_s_js: Seq[(Double, Double, Double)]) =
+  def upsilon_with_delta(mi_i: Double, mi_phi_s_js: Seq[(Double, Double, Double)])
+  : (Double, Double) =
     val u = mi_phi_s_js
       .map {
         case (mi_j, phi_j, s_j) => (mi_j, phi_j)
@@ -54,26 +55,25 @@ package object glicko:
                  d_pow_2: Double,
                  u: Double,
                  a: Double,
-                 tau: Double,
-                 tolerance: Double)
+                 tau: Double)
                 (x: Double) =
-    val e_pow_x = Math.pow(tolerance, x)
+    val e_pow_x = Math.exp(x)
     val minuend =
       (e_pow_x * (d_pow_2 - phi_pow_2 - u - e_pow_x)) /
         (2.0 * Math.pow(phi_pow_2 + u + e_pow_x, 2.0))
     val subtrahend = (x - a) / (tau * tau)
     minuend - subtrahend
 
-  private def sigma_sharp(sigma: Double,
-                          d: Double,
-                          u: Double,
-                          pfi_i: Double,
-                          tau: Double,
-                          tolerance: Double) =
-    val d_pow_2 = d * d
-    val phi_pow_2 = pfi_i * pfi_i
+  def a_b_f(sigma: Double,
+            phi_i: Double,
+            d: Double,
+            u: Double,
+            tau: Double)
+  : (Double, Double, Double => Double) =
     val a = Math.log(sigma * sigma)
-    val f = ef(phi_pow_2, d_pow_2, u, a, tau, tolerance)
+    val phi_pow_2 = phi_i * phi_i
+    val d_pow_2 = d * d
+    val f = ef(phi_pow_2, d_pow_2, u, a, tau)
     val diff = d_pow_2 - phi_pow_2 - u
     val b =
       if diff > 0
@@ -85,6 +85,16 @@ package object glicko:
           .map(a - _ * tau)
           .dropWhile(f(_) < 0)
           .head
+    (a, b, f)
+
+  def sigma_sharp(sigma: Double,
+                  d: Double,
+                  u: Double,
+                  phi_i: Double,
+                  tau: Double,
+                  tolerance: Double)
+  : Double =
+    val (a, b, f) = a_b_f(sigma, phi_i, d, u, tau)
     val (final_a, _, _, _) =
       LazyList
         .iterate(
@@ -105,17 +115,18 @@ package object glicko:
         .head
     Math.exp(final_a / 2.0)
 
-  private def pfi_asterisk(pfi_i: Double, sigma_sh: Double) =
+  def pfi_asterisk(pfi_i: Double, sigma_sh: Double): Double =
     Math.sqrt(pfi_i * pfi_i + sigma_sh * sigma_sh)
 
-  private def pfi_sharp(pfi_i_ast: Double, u: Double) =
-    (1.0 / (pfi_i_ast * pfi_i_ast)) + (1.0 / u)
+  def pfi_sharp(pfi_i_ast: Double, u: Double): Double =
+    ((1.0 / (pfi_i_ast * pfi_i_ast)) + (1.0 / u))
       .pipe(Math.sqrt)
       .pipe(1.0 / _)
 
-  private def mi_sharp(pfi_i_sharp: Double,
-                       mi_i: Double,
-                       mi_phi_s_js: Seq[(Double, Double, Double)]) =
+  def mi_sharp(pfi_i_sharp: Double,
+               mi_i: Double,
+               mi_phi_s_js: Seq[(Double, Double, Double)])
+  : Double =
     mi_phi_s_js
       .map {
         case (mi_j, phi_j, s_j) =>
@@ -137,15 +148,11 @@ package object glicko:
         .pipe((r, _, sigma))
     else
       val mi_i = mi(init_r)(r)
-      //println(s"mi_i = $mi_i")
       val phi_i = pfi(rd)
-      //println(s"phi_i = $phi_i")
       val mi_phi_s_js = r_rd_s_js.map { case (r_j, rd_j, sigma_j) =>
         (mi(init_r)(r_j), pfi(rd_j), sigma_j)
       }
-      //println(s"mi_phi_s_js = $mi_phi_s_js")
       val (u, d) = upsilon_with_delta(mi_i, mi_phi_s_js)
-      //println(s"(u, d) = ${(u, d)}")
       val sigma_sh = sigma_sharp(sigma, d, u, phi_i, tau, tolerance)
       val phi_i_ast = pfi_asterisk(phi_i, sigma_sh)
       val phi_i_sh = pfi_sharp(phi_i_ast, u)
