@@ -9,9 +9,10 @@ case class Player(rating: Double, deviation: Double, volatility: Double):
 
   def maxRating: Double = rating + 2 * deviation
 
-  def afterPeriod(tuning: Tuning = Tuning.default(),
-                  results: Seq[Result]): Player =
+  def afterPeriod(results: Seq[Result],
+                  tuning: Tuning = Tuning.default()): Player =
     results
+      .to(LazyList)
       .map {
         case Result.WonAgainst(p) => (1.0, p)
         case Result.DefeatedBy(p) => (0.0, p)
@@ -20,14 +21,20 @@ case class Player(rating: Double, deviation: Double, volatility: Double):
       .map { case (s, p: Player) =>
         (p.rating, p.deviation, s)
       }
-      .pipe{ r_rd_s_js =>
+      .pipe { r_rd_s_js =>
         glicko.calculate(
           tuning.initRating, tuning.tau, tuning.tolerance
         )(r_rd_s_js)(
           rating, deviation, volatility
         )
       }
-      .pipe(Player(_, _, _))
+      .pipe { case (r, rd, vol) =>
+        val rd_sh = Math.max(
+          Math.min(rd, tuning.maxDeviation),
+          tuning.minDeviation
+        )
+        Player(r, rd_sh, vol)
+      }
 
 object Player:
 
