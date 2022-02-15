@@ -46,11 +46,11 @@ val res = List(Result.WonAgainst(newPlayer))
 
 We can see how results affect a player.
 ```scala
-player.afterPeriod(res)
-// Player(1507.5,145.3,0.06)
+val playerUpdated = player.afterPeriod(res)
+// Player(1507.5, 145.3, 0.06)
 ```
 
-## Example
+## Glickman's example
 
 Suppose a player rated `1500` competes against players rated `1400`, `1550` and `1700`, winning
 the first game and losing the next two. Assume the `1500`-rated player’s rating deviation
@@ -67,6 +67,24 @@ val res1 = Result.WonAgainst(opp1)
 val res2 = Result.DefeatedBy(opp2)
 val res3 = Result.DefeatedBy(opp3)
 val results = List(res1, res2, res3)
-p.afterPeriod(results)
+val pUpdated = p.afterPeriod(results)
 // Player(1464.06, 151.52, 0.05999)
 ```
+
+## Tuning
+
+If the default values of the system do not serve us well, we can change them.
+```scala
+val tuning = Tuning(initRating = 1200, minDeviation = 30, tau = 0.75)
+// Tuning(1200.0, 350.0, 30.0, 0.06, 0.75, 0.000001)
+```
+
+In that case, we need to pass `tuning` as a parameter to `newEntry` and `afterPeriod` functions.
+
+These are the parameters of `Tuning` and their default values:
+* `initRating`: 1500
+* `maxDeviation`: 350,
+* `minDeviation`: 0,
+* `initVolatility`: 0.06
+* `tau`: 0.5
+* `tolerance`: 0.000001
