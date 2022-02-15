@@ -75,7 +75,7 @@ val pUpdated = p.afterPeriod(results)
 
 If the default values of the system do not serve us well, we can change them.
 ```scala
-val tuning = Tuning(initRating = 1200, minDeviation = 30, tau = 0.75)
+val tuning = Tuning.default(initRating = 1200, minDeviation = 30, tau = 0.75)
 // Tuning(1200.0, 350.0, 30.0, 0.06, 0.75, 0.000001)
 ```
 
