@@ -20,7 +20,7 @@ lazy val root = crossProject(JSPlatform, JVMPlatform)
     testFrameworks += new TestFramework("minitest.runner.Framework"),
     libraryDependencies ++= Seq(
       "io.monix" %%% "minitest" % "2.9.6" % "test",
-      "org.scalacheck" %%% "scalacheck" % "1.15.4"
+      "org.scalacheck" %%% "scalacheck" % "1.15.4" % "test"
     )
   )
   .jvmSettings()
