@@ -7,7 +7,7 @@ An implementation of the **Glicko-2** rating system for **Scala** and **Scala.js
 Add the dependency in the `build.sbt` file.
 
 ```scala
-libraryDependencies += "com.github.mrdimosthenis" %% "glicko2" % "1.0.0"
+libraryDependencies += "com.github.mrdimosthenis" %% "glicko2" % "1.0.1"
 ```
 
 For Scala.js use the `%%%` operator instead of `%%`.
